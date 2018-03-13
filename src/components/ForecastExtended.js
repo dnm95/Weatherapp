@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import ForecastItem from './ForecastItem';
+import transformForecast from './../services/transformForecast';
 import './styles.css';
-
+/*
 const days =[
     'Lunes',
     'Martes',
@@ -16,27 +17,73 @@ const data = {
     weatherState: 'normal',
     wind: 'normal',
 };
+*/
+const api_key = "73d0c684fae2fc729b973c27ee3023d3";
+const url = "http://api.openweathermap.org/data/2.5/forecast";
 
 class ForecastExtended extends Component{
 
-    renderForecastItemDays(){
-        return days.map( day => (<ForecastItem weekDay={day} hour={10} data={data}></ForecastItem>));
+    constructor(){
+        super();
+        this.state = { forecastData: null };
+    }
+
+    componentWillMount(){
+        this.updateCity(this.props.city);
+    }
+
+    componentWillReceiveProps(nextProps){
+        if(nextProps.city !== this.props.city){
+            this.setState({ forecastData: null });
+            this.updateCity(nextProps.city);
+        }
+    }
+
+    updateCity = city => {
+        //fetch or axios
+        const url_forecast = `${url}?q=${city}&appid=${api_key}`;
+
+        fetch(url_forecast).then(
+            data => (data.json())
+        ).then(
+            weather_data => {
+                console.log(weather_data);
+                const forecastData = transformForecast(weather_data);
+                console.log(forecastData);
+                this.setState({ forecastData: forecastData });
+            }
+        )
+    }
+
+    renderForecastItemDays(forecastData){
+        return forecastData.map( forecast => (
+            <ForecastItem key={`${forecast.weekDay}${forecast.hour}`} weekDay={forecast.weekDay} hour={forecast.hour} data={forecast.data}></ForecastItem>
+        ));
         
+    }
+
+    renderProgress = () => {
+        return <h3>Cargando Pronóstico extendido...</h3>;
     }
 
     render() {
         const { city } = this.props;
+        const { forecastData } = this.state;
 
         return(
             <div>
                 <h2 className="forecast-title">Pronóstico Extendido para {city}</h2>
-                {this.renderForecastItemDays()}
+                {forecastData ?
+                    this.renderForecastItemDays(forecastData) :
+                    this.renderProgress()
+                }
             </div>
         );
     }
 }
 
 ForecastExtended.propTypes = {
-    city: PropTypes.string.isRequired,
+    city: 
+    PropTypes.string.isRequired,
 }
 export default ForecastExtended;
